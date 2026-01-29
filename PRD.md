@@ -41,3 +41,41 @@
 
 ## 4. Technical Stack
 - Next.js 15, Tailwind CSS, Lucide Icons, Supabase, OpenAI API.
+
+## 5. Feature: Onboarding & Profiling (Detailed)
+
+### A. The Questionnaire (Set 1)
+The onboarding modal must cycle through these exact questions.
+1. "What’s been weighing on you the most lately?" (Input: Text)
+2. "Where do you feel you’re falling behind compared to other men your age?" (Input: Text)
+3. "What do you usually avoid because it makes you uncomfortable?" (Input: Text)
+4. "When things go wrong, how do you usually react?" (Input: Text)
+5. "What’s one thing about yourself you don’t like admitting?" (Input: Text)
+6. "If your life actually improved, what would change first?" (Input: Text)
+7. "How badly do you want things to change right now?" (Input: Text)
+8. "What kind of push helps you more? (Gentle / Balanced / Harsh)" (Input: Select/Text)
+9. "When you’re struggling, what helps more? (Encouragement / Instructions / Isolation)" (Input: Select/Text)
+10. "Does your current environment help you grow—or drag you down?" (Input: Text)
+11. "Which type of man do you respect the most?" (Input: Text)
+
+### B. The Analysis Engine (API)
+- **Endpoint:** `POST /api/analyze-profile`
+- **Logic:**
+  1. Accept the array of 11 Q&A pairs.
+  2. Send to OpenAI (GPT-4o) with a System Prompt to analyze the psyche.
+  3. **Output Schema (JSON):**
+     - `confidence_score` (0-100)
+     - `emotional_stability` (Enum: 'fragile', 'moderate', 'stable')
+     - `dominant_insecurity` (Enum: 'status', 'appearance', 'money', 'control', 'identity')
+     - `fear_level` (0-100)
+     - `ambition_level` (0-100)
+     - `goal_clarity` (Enum: 'unclear', 'semi-clear', 'clear')
+     - `strictness_preference` (0-100)
+     - `emotional_support_need` (0-100)
+     - `environment_rating` (Enum: 'hostile', 'neutral', 'supportive')
+     - `archetype` (Enum: 'Stoic Operator', 'Confident Leader', 'Quiet Disciplinarian', 'Strategic Thinker', 'Undefined')
+     - `generated_system_prompt`: A text block describing how the AI should talk to this specific user based on the stats.
+
+### C. Database Storage (Update `profiles` table)
+- Store the raw JSON result in a column named `psych_profile`.
+- Store the `generated_system_prompt` in a separate text column.

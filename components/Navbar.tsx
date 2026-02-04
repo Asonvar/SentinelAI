@@ -13,19 +13,24 @@ export default function Navbar() {
     }).format(now).toUpperCase();
 
     return (
-        <nav className="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-6 py-4 border-b border-white/20">
-            <div
-                className="font-mono text-sm tracking-widest text-[#EAEAEA]"
-                suppressHydrationWarning
-            >
-                {dateStr}
+        <nav className="fixed top-0 left-0 w-full z-50 pointer-events-none">
+            {/* Logo */}
+            <div className="absolute left-1/2 -translate-x-1/2 top-8 pointer-events-auto">
+                <span className="font-serif text-2xl tracking-[0.2em] text-[#EAEAEA]">SENTINEL</span>
             </div>
 
-            <div className="flex items-center gap-8">
-                <Link href="#" className="font-mono text-sm hover:text-accent transition-colors">
+            {/* Navigation Links */}
+            <div className="absolute right-8 top-8 flex flex-col gap-2 items-end font-sans text-xs tracking-wide text-[#EAEAEA] pointer-events-auto">
+                <div
+                    className="hover:text-accent transition-colors cursor-default"
+                    suppressHydrationWarning
+                >
+                    {dateStr}
+                </div>
+                <Link href="#" className="hover:text-accent transition-colors">
                     INSPO
                 </Link>
-                <Link href="#" className="font-mono text-sm hover:text-accent transition-colors">
+                <Link href="#" className="hover:text-accent transition-colors">
                     LOG-IN
                 </Link>
             </div>

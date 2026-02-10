@@ -10,12 +10,10 @@ export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
-    <main className="min-h-screen flex flex-col relative w-full">
+    <main className="min-h-screen flex flex-col items-center justify-center px-4 relative w-full overflow-hidden">
       <Navbar />
-      <div className="flex-1 flex flex-col items-center justify-center p-4 w-full h-full pb-32">
-        <Hero />
-        <TakeControlInput onFocus={() => setIsModalOpen(true)} />
-      </div>
+      <Hero />
+      <TakeControlInput onFocus={() => setIsModalOpen(true)} />
       <OnboardingModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

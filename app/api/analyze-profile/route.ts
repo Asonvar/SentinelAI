@@ -5,8 +5,7 @@ const apiKey = process.env.GOOGLE_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey || "");
 
 const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash-001",
-    generationConfig: { responseMimeType: "application/json" },
+    model: "gemini-3-flash-preview",
 });
 
 export async function POST(req: Request) {
@@ -27,7 +26,7 @@ export async function POST(req: Request) {
             );
         }
 
-        const prompt = `You are an expert psychologist. Analyze these user answers. Return a JSON object with these keys: confidence_score (0-100), emotional_stability (string), dominant_insecurity (string), and generated_system_prompt (a string describing how to talk to them).
+        const prompt = `You are an expert psychologist. Analyze these user answers. Return PURE JSON. Do not use Markdown. Do not use code blocks. Return a JSON object with these keys: confidence_score (0-100), emotional_stability (string), dominant_insecurity (string), and generated_system_prompt (a string describing how to talk to them).
     
     User Answers:
     ${JSON.stringify(answers)}
@@ -35,9 +34,8 @@ export async function POST(req: Request) {
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
-        const text = response.text();
+        const text = response.text().replace(/```json/g, '').replace(/```/g, '').trim();
 
-        // The response should already be in JSON format due to responseMimeType: "application/json"
         const analysis = JSON.parse(text);
 
         return NextResponse.json(analysis);

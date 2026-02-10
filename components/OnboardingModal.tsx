@@ -64,6 +64,7 @@ export default function OnboardingModal({ isOpen, onClose }: OnboardingModalProp
                 } finally {
                     setIsAnalyzing(false);
                     onClose();
+                    window.location.href = '/dashboard';
                 }
             }
         }

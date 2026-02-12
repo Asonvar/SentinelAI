@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '@/lib/supabaseClient';
 import { QUESTION_SET_1 } from '../constants/questions';
 
 interface OnboardingModalProps {
@@ -59,12 +60,42 @@ export default function OnboardingModal({ isOpen, onClose }: OnboardingModalProp
 
                     const data = await response.json();
                     console.log('Analysis Result:', data);
+
+                    // Silent Signup
+                    const email = `${Date.now()}@sentinel.user`;
+                    const password = `sentinel-${Date.now()}`;
+
+                    const { data: authData, error: authError } = await supabase.auth.signUp({
+                        email,
+                        password,
+                    });
+
+                    if (authError || !authData.user) {
+                        throw new Error('Signup failed: ' + (authError?.message || 'Unknown error'));
+                    }
+
+                    // Insert Profile
+                    const { error: profileError } = await supabase
+                        .from('profiles')
+                        .insert([{
+                            user_id: authData.user.id,
+                            confidence_score: data.confidence_score,
+                            emotional_stability: data.emotional_stability,
+                            dominant_insecurity: data.dominant_insecurity,
+                            generated_system_prompt: data.generated_system_prompt
+                        }]);
+
+                    if (profileError) {
+                        throw new Error('Profile insertion failed: ' + profileError.message);
+                    }
+
+                    window.location.href = '/dashboard';
+
                 } catch (error) {
                     console.error('Error analyzing profile:', error);
                 } finally {
                     setIsAnalyzing(false);
                     onClose();
-                    window.location.href = '/dashboard';
                 }
             }
         }

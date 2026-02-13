@@ -62,7 +62,7 @@ export default function OnboardingModal({ isOpen, onClose }: OnboardingModalProp
                     console.log('Analysis Result:', data);
 
                     // Silent Signup
-                    const email = `${Date.now()}@sentinel.user`;
+                    const email = `${Date.now()}@sentinel.com`;
                     const password = `sentinel-${Date.now()}`;
 
                     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -78,7 +78,7 @@ export default function OnboardingModal({ isOpen, onClose }: OnboardingModalProp
                     const { error: profileError } = await supabase
                         .from('profiles')
                         .insert([{
-                            user_id: authData.user.id,
+                            id: authData.user.id,
                             confidence_score: data.confidence_score,
                             emotional_stability: data.emotional_stability,
                             dominant_insecurity: data.dominant_insecurity,

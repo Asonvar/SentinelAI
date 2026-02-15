@@ -59,10 +59,13 @@ export async function POST(req: Request) {
         const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('generated_system_prompt')
-            .eq('user_id', user.id)
+            .eq('id', user.id)
             .single();
 
-        if (profileError) throw new Error('Failed to fetch profile: ' + profileError.message);
+        if (profileError) {
+            console.error('Profile Fetch Error:', profileError);
+            throw new Error('Failed to fetch profile: ' + profileError.message);
+        }
 
         const systemPrompt = profileData.generated_system_prompt || "You are a helpful assistant.";
 
@@ -80,7 +83,10 @@ export async function POST(req: Request) {
                 content: responseText
             }]);
 
-        if (aiMsgError) throw new Error('Failed to save AI response');
+        if (aiMsgError) {
+            console.error('AI Message Save Error:', aiMsgError);
+            throw new Error('Failed to save AI response');
+        }
 
         return NextResponse.json({
             response: responseText,
@@ -88,7 +94,10 @@ export async function POST(req: Request) {
         });
 
     } catch (error: any) {
-        console.error('Chat API Error:', error);
-        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+        console.error('Chat API Critical Failure:', error);
+        return NextResponse.json({
+            error: error.message || 'Internal Server Error',
+            details: error
+        }, { status: 500 });
     }
 }

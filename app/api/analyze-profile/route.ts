@@ -1,18 +1,17 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from '@google/genai';
 import { NextResponse } from "next/server";
 
-const apiKey = process.env.GOOGLE_API_KEY;
-const genAI = new GoogleGenerativeAI(apiKey || "");
-
-const model = genAI.getGenerativeModel({
-    model: "gemini-3-flash-preview",
+// Strict Express Mode Initialization — no project, location, or credentials.
+const ai = new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY,
+    vertexai: true
 });
 
 export async function POST(req: Request) {
     try {
-        if (!apiKey) {
+        if (!process.env.GEMINI_API_KEY) {
             return NextResponse.json(
-                { error: "GOOGLE_API_KEY is not defined" },
+                { error: "GEMINI_API_KEY is not defined" },
                 { status: 500 }
             );
         }
@@ -32,16 +31,27 @@ export async function POST(req: Request) {
     ${JSON.stringify(answers)}
     `;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+        // Model selection + safety configurations via the new SDK
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-pro',
+            contents: prompt,
+            config: {
+                safetySettings: [
+                    { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE }
+                ]
+            }
+        });
 
+        const text = response.text?.replace(/```json/g, '').replace(/```/g, '').trim() ?? '';
         const analysis = JSON.parse(text);
 
         return NextResponse.json(analysis);
 
     } catch (error) {
-        console.error("Error analyzing profile:", error);
+        console.error("Analysis API Error:", error);
         return NextResponse.json(
             { error: "Failed to analyze profile" },
             { status: 500 }

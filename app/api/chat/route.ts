@@ -1,21 +1,27 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from '@supabase/supabase-js';
+import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from '@google/genai';
 import { NextResponse } from "next/server";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-const googleApiKey = process.env.GOOGLE_API_KEY!;
-const genAI = new GoogleGenerativeAI(googleApiKey);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+// Strict Express Mode Initialization — no project, location, or credentials.
+const ai = new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY,
+    vertexai: true
+});
 
 export async function POST(req: Request) {
     try {
+        // Extract the Auth token from the incoming request
         const authHeader = req.headers.get('authorization');
         if (!authHeader) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
+
+        // Initialize Supabase WITH the user's credentials to bypass RLS
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            { global: { headers: { Authorization: authHeader } } }
+        );
 
         const token = authHeader.replace('Bearer ', '');
         const { data: { user }, error: authError } = await supabase.auth.getUser(token);
@@ -69,10 +75,22 @@ export async function POST(req: Request) {
 
         const systemPrompt = profileData.generated_system_prompt || "You are a helpful assistant.";
 
-        // Call Gemini
+        // Call Gemini via new SDK — flash model for low-latency chat
         const prompt = `${systemPrompt}\n\nUser: ${message}`;
-        const result = await model.generateContent(prompt);
-        const responseText = result.response.text();
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                safetySettings: [
+                    { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE }
+                ]
+            }
+        });
+
+        const responseText = response.text?.replace(/```json/g, '').replace(/```/g, '').trim() ?? '';
 
         // Save AI Response
         const { error: aiMsgError } = await supabase

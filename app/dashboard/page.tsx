@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { MessageSquare, Zap, Target, Bookmark, Plus } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export default function Dashboard() {
     const [mode, setMode] = useState<'initial' | 'vent' | 'brotip'>('initial');
@@ -223,7 +225,15 @@ export default function Dashboard() {
                             {messages.map((msg) => (
                                 <div key={msg.id} className={`mb-6 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                     <div className={`max-w-[70%] p-4 rounded-lg border ${msg.role === 'user' ? 'border-[#C25E00] bg-[#1a0d00]' : 'border-[#333] bg-[#111]'}`}>
-                                        <p className="text-sm md:text-base text-[#EAEAEA] whitespace-pre-wrap">{msg.content}</p>
+                                        {msg.role === 'assistant' ? (
+                                            <div className="prose prose-invert max-w-none text-sm space-y-2">
+                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                    {msg.content}
+                                                </ReactMarkdown>
+                                            </div>
+                                        ) : (
+                                            <p className="text-sm md:text-base text-[#EAEAEA] whitespace-pre-wrap">{msg.content}</p>
+                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -240,13 +250,18 @@ export default function Dashboard() {
                         {/* Input Area */}
                         <div className="absolute bottom-0 left-0 w-full p-6 bg-black border-t border-[#333]">
                             <div className="max-w-3xl mx-auto">
-                                <input
-                                    type="text"
+                                <textarea
+                                    rows={1}
                                     value={inputValue}
                                     onChange={(e) => setInputValue(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault();
+                                            handleSendMessage();
+                                        }
+                                    }}
                                     placeholder="Go ahead, I am here for you..."
-                                    className="w-full bg-black border border-[#C25E00] text-[#EAEAEA] placeholder:text-neutral-600 font-mono text-base px-6 py-4 focus:outline-none focus:shadow-[0_0_15px_rgba(194,94,0,0.2)] transition-all"
+                                    className="w-full bg-transparent resize-none outline-none text-white whitespace-pre-wrap break-words px-4 py-3 border border-[#C25E00] placeholder:text-neutral-600 font-mono text-base focus:shadow-[0_0_15px_rgba(194,94,0,0.2)] transition-all"
                                     autoFocus
                                 />
                             </div>

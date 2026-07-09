@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { MessageSquare, Zap, Target, Bookmark, Plus } from "lucide-react";
+import { MessageSquare, Zap, Target, Bookmark, Plus, User } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -125,12 +125,22 @@ export default function Dashboard() {
     };
 
     return (
-        <div className="h-screen w-screen overflow-hidden bg-black flex text-white font-sans">
+        <div className="h-screen w-screen overflow-hidden bg-black flex flex-col text-white font-sans">
+            {/* Top Navbar */}
+            <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-[#333] bg-black">
+                <h1 className="text-xl font-serif font-bold tracking-widest text-[#EAEAEA]">SENTINEL</h1>
+                <div className="flex items-center gap-3 cursor-pointer group">
+                    <div className="w-8 h-8 rounded-full border border-[#555] group-hover:border-[#C25E00] flex items-center justify-center transition-colors">
+                        <User className="w-4 h-4 text-[#A3A3A3] group-hover:text-[#C25E00] transition-colors" />
+                    </div>
+                    <span className="text-sm text-[#A3A3A3] group-hover:text-[#EAEAEA] transition-colors">Username</span>
+                </div>
+            </div>
+
+            {/* Main Content Area */}
+            <div className="flex-1 flex overflow-hidden">
             {/* Left Sidebar */}
             <div className="w-64 h-full flex flex-col border-r border-[#333] p-4 gap-6 overflow-y-auto shrink-0">
-                <div className="mb-6">
-                    <h2 className="text-xl font-serif font-bold tracking-widest text-[#EAEAEA] mb-4">SENTINEL</h2>
-                </div>
 
                 {/* Vent-Out List */}
                 <div>
@@ -343,6 +353,7 @@ export default function Dashboard() {
                         COMING SOON...
                     </span>
                 </div>
+            </div>
             </div>
         </div>
     );

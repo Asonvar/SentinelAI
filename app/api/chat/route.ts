@@ -73,14 +73,27 @@ export async function POST(req: Request) {
             throw new Error('Failed to fetch profile: ' + profileError.message);
         }
 
-        const systemPrompt = profileData.generated_system_prompt || "You are a helpful assistant.";
+        const onboardingPrompt = profileData.generated_system_prompt || "";
+
+        // Mode-specific behavioral constraints
+        let modeConstraint = '';
+        if (mode === 'brotip') {
+            modeConstraint = `You are a brutal, no-nonsense motivational drill sergeant. Your responses MUST be extremely short (2-3 sentences MAX). Be aggressive, punchy, and completely ruthless. No comfort. No validation. No hand-holding. Hit them with raw, unfiltered truth that lights a fire. Every word should feel like a slap that wakes them up. Never be soft. Never sugarcoat.`;
+        } else {
+            // Default: vent mode
+            modeConstraint = `You are an expert, highly perceptive psychological therapist. Provide structured, analytical reflections on what the user shares. Identify underlying emotional patterns, cognitive distortions, and unspoken feelings. Be empathetic but incisive — validate their experience while gently surfacing deeper truths they may not see. Use therapeutic frameworks naturally without being clinical. Guide them toward self-awareness.`;
+        }
+
+        const systemInstruction = onboardingPrompt
+            ? `${onboardingPrompt}\n\n${modeConstraint}`
+            : modeConstraint;
 
         // Stream Gemini response via generateContentStream
-        const prompt = `${systemPrompt}\n\nUser: ${message}`;
         const streamResponse = await ai.models.generateContentStream({
             model: 'gemini-2.5-flash',
-            contents: prompt,
+            contents: message,
             config: {
+                systemInstruction,
                 safetySettings: [
                     { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
                     { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },

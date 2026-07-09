@@ -125,9 +125,9 @@ export default function Dashboard() {
     };
 
     return (
-        <div className="grid grid-cols-12 h-screen bg-black text-white font-sans overflow-hidden">
-            {/* Left Sidebar (Cols 2) */}
-            <div className="col-span-2 border-r border-[#333] p-4 flex flex-col gap-6 overflow-y-auto">
+        <div className="h-screen w-screen overflow-hidden bg-black flex text-white font-sans">
+            {/* Left Sidebar */}
+            <div className="w-64 h-full flex flex-col border-r border-[#333] p-4 gap-6 overflow-y-auto shrink-0">
                 <div className="mb-6">
                     <h2 className="text-xl font-serif font-bold tracking-widest text-[#EAEAEA] mb-4">SENTINEL</h2>
                 </div>
@@ -155,7 +155,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Bro-Tip List */}
-                <div className="mt-4">
+                <div>
                     <h3 className="text-xs text-[#A3A3A3] uppercase tracking-wider mb-3 flex items-center justify-between gap-2 group cursor-pointer" onClick={startNew}>
                         <div className="flex items-center gap-2">
                             <Zap className="w-3 h-3" />
@@ -177,8 +177,8 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* Center Stage (Cols 7) */}
-            <div className="col-span-7 flex flex-col h-full bg-black relative">
+            {/* Center Panel (Chat) */}
+            <div className="flex-1 h-full flex flex-col overflow-hidden">
                 {mode === 'initial' ? (
                     <div className="flex-1 flex flex-col items-center justify-center p-8">
                         <div className="flex gap-8 w-full max-w-4xl justify-center">
@@ -213,17 +213,17 @@ export default function Dashboard() {
                     </div>
                 ) : (
                     <>
-                        {/* Header */}
-                        <div className="absolute top-0 left-0 w-full p-6 text-center border-b border-[#333] z-10 bg-black/50 backdrop-blur-md">
+                        {/* Fixed Top Header */}
+                        <div className="shrink-0 p-6 text-center border-b border-[#333] bg-black/50 backdrop-blur-md">
                             <h2 className="text-xl font-serif font-bold tracking-[0.2em] text-[#EAEAEA] uppercase">
                                 {mode === 'vent' ? 'VENT SESSION' : 'BRO TIP'}
                             </h2>
                         </div>
 
-                        {/* Message Area */}
-                        <div className="flex-1 overflow-y-auto p-8 pt-24 pb-32">
+                        {/* Scrollable Message Area */}
+                        <div className="flex-1 overflow-y-auto p-6 space-y-4">
                             {messages.map((msg) => (
-                                <div key={msg.id} className={`mb-6 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                     <div className={`max-w-[70%] p-4 rounded-lg border ${msg.role === 'user' ? 'border-[#C25E00] bg-[#1a0d00]' : 'border-[#333] bg-[#111]'}`}>
                                         {msg.role === 'assistant' ? (
                                             <div className="prose prose-invert max-w-none text-sm space-y-2">
@@ -238,7 +238,7 @@ export default function Dashboard() {
                                 </div>
                             ))}
                             {isLoading && (
-                                <div className="flex justify-start mb-6">
+                                <div className="flex justify-start">
                                     <div className="p-4 rounded-lg bg-transparent">
                                         <p className="text-sm text-[#C25E00] animate-pulse font-mono">SENTINEL IS THINKING...</p>
                                     </div>
@@ -247,8 +247,8 @@ export default function Dashboard() {
                             <div ref={messagesEndRef} />
                         </div>
 
-                        {/* Input Area */}
-                        <div className="absolute bottom-0 left-0 w-full p-6 bg-black border-t border-[#333]">
+                        {/* Fixed Bottom Input */}
+                        <div className="shrink-0 p-6 bg-black border-t border-[#333]">
                             <div className="max-w-3xl mx-auto">
                                 <textarea
                                     rows={1}
@@ -270,9 +270,9 @@ export default function Dashboard() {
                 )}
             </div>
 
-            {/* Right Sidebar (Cols 3) */}
-            <div className="col-span-3 border-l border-[#333] p-4 flex flex-col gap-6 overflow-y-auto">
-                <div className="opacity-50 pointer-events-none filter blur-[1px]">
+            {/* Right Sidebar (Goals) */}
+            <div className="w-80 h-full flex flex-col border-l border-[#333] p-4 gap-6 overflow-y-auto shrink-0 relative">
+                <div className="opacity-50 pointer-events-none filter blur-[1px] flex flex-col gap-6">
                     {/* Daily Goals */}
                     <div>
                         <h3 className="text-xs text-[#A3A3A3] uppercase tracking-wider mb-3 flex items-center gap-2">
@@ -280,37 +280,37 @@ export default function Dashboard() {
                             Daily Goals
                         </h3>
                         <div className="space-y-2">
-                            <div className="flex items-center gap-3 p-2 bg-[#111] rounded">
-                                <div className="w-4 h-4 border border-[#333] rounded-sm"></div>
+                            <div className="flex items-center gap-3 h-10 px-3 bg-[#111] rounded">
+                                <div className="w-4 h-4 border border-[#333] rounded-sm shrink-0"></div>
                                 <span className="text-sm text-[#EAEAEA]/80">Hit the gym</span>
                             </div>
-                            <div className="flex items-center gap-3 p-2 bg-[#111] rounded">
-                                <div className="w-4 h-4 border border-[#333] rounded-sm"></div>
+                            <div className="flex items-center gap-3 h-10 px-3 bg-[#111] rounded">
+                                <div className="w-4 h-4 border border-[#333] rounded-sm shrink-0"></div>
                                 <span className="text-sm text-[#EAEAEA]/80">Read 10 pages</span>
                             </div>
                         </div>
                     </div>
 
                     {/* Weekly Goals */}
-                    <div className="mt-2">
+                    <div>
                         <h3 className="text-xs text-[#A3A3A3] uppercase tracking-wider mb-3 flex items-center gap-2">
                             <Target className="w-3 h-3" />
                             Weekly Goals
                         </h3>
                         <div className="space-y-2">
-                            <div className="flex items-center gap-3 p-2 bg-[#111] rounded">
-                                <div className="w-4 h-4 border border-[#333] rounded-sm"></div>
+                            <div className="flex items-center gap-3 h-10 px-3 bg-[#111] rounded">
+                                <div className="w-4 h-4 border border-[#333] rounded-sm shrink-0"></div>
                                 <span className="text-sm text-[#EAEAEA]/80">Run 10km total</span>
                             </div>
-                            <div className="flex items-center gap-3 p-2 bg-[#111] rounded">
-                                <div className="w-4 h-4 border border-[#333] rounded-sm"></div>
+                            <div className="flex items-center gap-3 h-10 px-3 bg-[#111] rounded">
+                                <div className="w-4 h-4 border border-[#333] rounded-sm shrink-0"></div>
                                 <span className="text-sm text-[#EAEAEA]/80">Complete project</span>
                             </div>
                         </div>
                     </div>
 
                     {/* Long-Term Goals */}
-                    <div className="mt-2">
+                    <div>
                         <h3 className="text-xs text-[#A3A3A3] uppercase tracking-wider mb-3 flex items-center gap-2">
                             <Target className="w-3 h-3" />
                             Long-Term Vision
@@ -323,7 +323,7 @@ export default function Dashboard() {
                     </div>
 
                     {/* Saved Tips */}
-                    <div className="mt-4">
+                    <div>
                         <h3 className="text-xs text-[#A3A3A3] uppercase tracking-wider mb-3 flex items-center gap-2">
                             <Bookmark className="w-3 h-3" />
                             Saved Tips
@@ -338,8 +338,10 @@ export default function Dashboard() {
                         </ul>
                     </div>
                 </div>
-                <div className="absolute bg-white/5 p-2 rounded text-xs text-center text-white/50 top-1/2 right-12 transform -translate-y-1/2 rotate-90 origin-right">
-                    COMING SOON...
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <span className="bg-white/5 p-2 rounded text-xs text-center text-white/50">
+                        COMING SOON...
+                    </span>
                 </div>
             </div>
         </div>

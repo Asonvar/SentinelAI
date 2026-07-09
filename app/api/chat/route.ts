@@ -75,9 +75,9 @@ export async function POST(req: Request) {
 
         const systemPrompt = profileData.generated_system_prompt || "You are a helpful assistant.";
 
-        // Call Gemini via new SDK — flash model for low-latency chat
+        // Stream Gemini response via generateContentStream
         const prompt = `${systemPrompt}\n\nUser: ${message}`;
-        const response = await ai.models.generateContent({
+        const streamResponse = await ai.models.generateContentStream({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -90,25 +90,51 @@ export async function POST(req: Request) {
             }
         });
 
-        const responseText = response.text?.replace(/```json/g, '').replace(/```/g, '').trim() ?? '';
+        const encoder = new TextEncoder();
+        let fullResponse = '';
 
-        // Save AI Response
-        const { error: aiMsgError } = await supabase
-            .from('messages')
-            .insert([{
-                chat_id: currentChatId,
-                role: 'assistant',
-                content: responseText
-            }]);
+        const stream = new ReadableStream({
+            async start(controller) {
+                try {
+                    // Send chatId as the first metadata line
+                    controller.enqueue(encoder.encode(JSON.stringify({ chatId: currentChatId }) + '\n'));
 
-        if (aiMsgError) {
-            console.error('AI Message Save Error:', aiMsgError);
-            throw new Error('Failed to save AI response');
-        }
+                    // Stream text chunks from Gemini
+                    for await (const chunk of streamResponse) {
+                        const text = chunk.text ?? '';
+                        if (text) {
+                            fullResponse += text;
+                            controller.enqueue(encoder.encode(text));
+                        }
+                    }
 
-        return NextResponse.json({
-            response: responseText,
-            chatId: currentChatId
+                    // Save the complete AI response to Supabase after streaming
+                    const { error: aiMsgError } = await supabase
+                        .from('messages')
+                        .insert([{
+                            chat_id: currentChatId,
+                            role: 'assistant',
+                            content: fullResponse
+                        }]);
+
+                    if (aiMsgError) {
+                        console.error('AI Message Save Error:', aiMsgError);
+                    }
+
+                    controller.close();
+                } catch (err) {
+                    console.error('Stream error:', err);
+                    controller.error(err);
+                }
+            }
+        });
+
+        return new Response(stream, {
+            headers: {
+                'Content-Type': 'text/plain; charset=utf-8',
+                'Transfer-Encoding': 'chunked',
+                'Cache-Control': 'no-cache',
+            }
         });
 
     } catch (error: any) {
@@ -119,3 +145,4 @@ export async function POST(req: Request) {
         }, { status: 500 });
     }
 }
+

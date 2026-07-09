@@ -94,22 +94,63 @@ export default function Dashboard() {
                 })
             });
 
-            const data = await response.json();
-
-            // Perform full refresh if it was a new chat to get ID and saved messages
-            if (!currentChatId && data.chatId) {
-                setCurrentChatId(data.chatId);
-                fetchChats(user.id);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Chat request failed');
             }
 
-            // Update messages with real response
-            const aiMsg = {
-                id: 'ai-' + Date.now(),
+            const reader = response.body?.getReader();
+            if (!reader) throw new Error('No response body');
+
+            const decoder = new TextDecoder();
+            const aiMsgId = 'ai-' + Date.now();
+            let isFirstChunk = true;
+            let aiContent = '';
+
+            // Add empty AI message placeholder for streaming
+            setMessages(prev => [...prev, {
+                id: aiMsgId,
                 role: 'assistant',
-                content: data.response,
+                content: '',
                 created_at: new Date().toISOString()
-            };
-            setMessages(prev => [...prev, aiMsg]);
+            }]);
+            setIsLoading(false);
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const text = decoder.decode(value, { stream: true });
+
+                if (isFirstChunk) {
+                    // First chunk contains metadata line (chatId) + possibly text
+                    const newlineIndex = text.indexOf('\n');
+                    if (newlineIndex !== -1) {
+                        const metaLine = text.slice(0, newlineIndex);
+                        try {
+                            const meta = JSON.parse(metaLine);
+                            if (!currentChatId && meta.chatId) {
+                                setCurrentChatId(meta.chatId);
+                                fetchChats(user.id);
+                            }
+                        } catch { /* metadata parse failed, treat as text */ }
+
+                        const remaining = text.slice(newlineIndex + 1);
+                        if (remaining) {
+                            aiContent += remaining;
+                            setMessages(prev => prev.map(msg =>
+                                msg.id === aiMsgId ? { ...msg, content: aiContent } : msg
+                            ));
+                        }
+                    }
+                    isFirstChunk = false;
+                } else {
+                    aiContent += text;
+                    setMessages(prev => prev.map(msg =>
+                        msg.id === aiMsgId ? { ...msg, content: aiContent } : msg
+                    ));
+                }
+            }
 
         } catch (error) {
             console.error('Failed to send message:', error);

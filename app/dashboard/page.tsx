@@ -277,7 +277,7 @@ export default function Dashboard() {
                                 <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                     <div className={`max-w-[70%] p-4 rounded-lg border ${msg.role === 'user' ? 'border-[#C25E00] bg-[#1a0d00]' : 'border-[#333] bg-[#111]'}`}>
                                         {msg.role === 'assistant' ? (
-                                            <div className="prose prose-invert max-w-none text-sm space-y-2">
+                                            <div className="prose prose-invert max-w-none text-sm leading-relaxed space-y-3 prose-headings:text-white prose-strong:text-amber-500 prose-ul:list-disc pl-4">
                                                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                                     {msg.content}
                                                 </ReactMarkdown>

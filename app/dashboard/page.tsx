@@ -274,18 +274,18 @@ export default function Dashboard() {
                             {/* Scrollable Message Area */}
                             <div className="flex-1 overflow-y-auto p-6 space-y-4">
                                 {messages.map((msg) => (
-                                    <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                        <div className={`max-w-[70%] p-4 rounded-lg border ${msg.role === 'user' ? 'border-[#C25E00] bg-[#1a0d00]' : 'border-[#333] bg-[#111]'}`}>
-                                            {msg.role === 'assistant' ? (
-                                                <div className="prose prose-invert max-w-none text-sm leading-relaxed space-y-3 prose-headings:text-white prose-strong:text-amber-500 prose-ul:list-disc pl-4">
-                                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                                        {msg.content}
-                                                    </ReactMarkdown>
-                                                </div>
-                                            ) : (
-                                                <p className="text-sm md:text-base text-[#EAEAEA] whitespace-pre-wrap">{msg.content}</p>
-                                            )}
-                                        </div>
+                                    <div key={msg.id} className="w-full">
+                                        {msg.role === 'assistant' ? (
+                                            <div className="prose prose-invert max-w-none text-[#EAEAEA] prose-headings:font-serif prose-headings:text-white prose-strong:text-[#C25E00]">
+                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                    {msg.content}
+                                                </ReactMarkdown>
+                                            </div>
+                                        ) : (
+                                            <div className="border-l-2 border-[#C25E00]/40 pl-4 py-1">
+                                                <p className="text-sm text-[#A3A3A3] whitespace-pre-wrap">{msg.content}</p>
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                                 {isLoading && (

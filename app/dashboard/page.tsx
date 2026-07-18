@@ -165,6 +165,105 @@ export default function Dashboard() {
         setMessages([]);
     };
 
+    // Intelligent Opening: auto-generate AI's first message when entering Vent mode
+    const generateOpeningMessage = async (selectedMode: 'vent' | 'brotip') => {
+        if (!user) return;
+
+        setMode(selectedMode);
+        setCurrentChatId(null);
+        setMessages([]);
+        setIsLoading(true);
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+
+            // Send a trigger message that activates the depth=0 "calculated guess" logic
+            const triggerMessage = selectedMode === 'vent'
+                ? "I need to talk."
+                : "Give me a tip.";
+
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify({
+                    message: triggerMessage,
+                    chatId: null,
+                    mode: selectedMode
+                })
+            });
+
+            if (!response.ok) throw new Error('Opening generation failed');
+
+            const reader = response.body?.getReader();
+            if (!reader) throw new Error('No response body');
+
+            const decoder = new TextDecoder();
+            const aiMsgId = 'ai-opening-' + Date.now();
+            let isFirstChunk = true;
+            let aiContent = '';
+
+            // Add the trigger as a hidden user message + empty AI placeholder
+            setMessages([
+                {
+                    id: 'trigger-' + Date.now(),
+                    role: 'user',
+                    content: triggerMessage,
+                    created_at: new Date().toISOString(),
+                    hidden: true // Mark as hidden so UI can optionally skip it
+                },
+                {
+                    id: aiMsgId,
+                    role: 'assistant',
+                    content: '',
+                    created_at: new Date().toISOString()
+                }
+            ]);
+            setIsLoading(false);
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const text = decoder.decode(value, { stream: true });
+
+                if (isFirstChunk) {
+                    const newlineIndex = text.indexOf('\n');
+                    if (newlineIndex !== -1) {
+                        const metaLine = text.slice(0, newlineIndex);
+                        try {
+                            const meta = JSON.parse(metaLine);
+                            if (meta.chatId) {
+                                setCurrentChatId(meta.chatId);
+                                fetchChats(user.id);
+                            }
+                        } catch { /* metadata parse failed */ }
+
+                        const remaining = text.slice(newlineIndex + 1);
+                        if (remaining) {
+                            aiContent += remaining;
+                            setMessages(prev => prev.map(msg =>
+                                msg.id === aiMsgId ? { ...msg, content: aiContent } : msg
+                            ));
+                        }
+                    }
+                    isFirstChunk = false;
+                } else {
+                    aiContent += text;
+                    setMessages(prev => prev.map(msg =>
+                        msg.id === aiMsgId ? { ...msg, content: aiContent } : msg
+                    ));
+                }
+            }
+        } catch (error) {
+            console.error('Opening generation failed:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
         <div className="h-screen w-screen overflow-hidden bg-black flex flex-col text-white font-sans">
             {/* Top Navbar */}
@@ -235,7 +334,7 @@ export default function Dashboard() {
                             <div className="flex gap-8 w-full max-w-4xl justify-center">
                                 {/* Button 1: Vent Out */}
                                 <button
-                                    onClick={() => setMode('vent')}
+                                    onClick={() => generateOpeningMessage('vent')}
                                     className="group relative w-64 h-64 rounded-full border border-[#333] hover:border-[#C25E00] bg-black flex flex-col items-center justify-center transition-all duration-300 hover:shadow-[0_0_30px_rgba(194,94,0,0.2)]"
                                 >
                                     <div className="absolute inset-0 rounded-full border border-[#C25E00] opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all duration-500"></div>
@@ -273,7 +372,7 @@ export default function Dashboard() {
 
                             {/* Scrollable Message Area */}
                             <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                                {messages.map((msg) => (
+                                {messages.filter((msg) => !msg.hidden).map((msg) => (
                                     <div key={msg.id} className="w-full">
                                         {msg.role === 'assistant' ? (
                                             <div className="prose prose-invert max-w-none text-[#EAEAEA] prose-headings:font-serif prose-headings:text-white prose-strong:text-[#C25E00]">

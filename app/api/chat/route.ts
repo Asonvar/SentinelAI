@@ -61,6 +61,22 @@ export async function POST(req: Request) {
 
         if (msgError) throw new Error('Failed to save message: ' + msgError.message);
 
+        // Fetch full conversation history for context injection
+        const { data: historyData, error: historyError } = await supabase
+            .from('messages')
+            .select('role, content')
+            .eq('chat_id', currentChatId)
+            .order('created_at', { ascending: true });
+
+        if (historyError) {
+            console.error('History Fetch Error:', historyError);
+            throw new Error('Failed to fetch history: ' + historyError.message);
+        }
+
+        const conversationHistory = historyData || [];
+        // Depth = number of messages BEFORE this one (excluding the just-saved user message)
+        const depth = Math.max(0, conversationHistory.length - 1);
+
         // Fetch User Profile for System Prompt
         const { data: profileData, error: profileError } = await supabase
             .from('profiles')
@@ -75,38 +91,66 @@ export async function POST(req: Request) {
 
         const onboardingPrompt = profileData.generated_system_prompt || "";
 
-        // Mode-specific behavioral constraints
-        let modeConstraint = '';
-        if (mode === 'brotip') {
-            modeConstraint = `CRITICAL BEHAVIOR: You are an Identity Engineer. Your goal is aggressive mobilization.
-- Do NOT comfort the user. Do NOT validate their excuses.
-- Output format: Short, brutal, punchy. Maximum 3 paragraphs. 
-- Structure: 
-  1. The Punch (Confront the specific excuse). 
-  2. The Explanation (Why they are choosing comfort over respect). 
-  3. The Action (One single, difficult task to do TODAY. Not tomorrow).
-- Tone: Cold, analytical, authoritative. Tell them they are losing to the version of themselves that chooses "later". 
-- Quote rule: "I don't reward intentions. I reward evidence."`;
+        // --- Conversation Depth System ---
+        let depthInstruction = '';
+
+        if (depth === 0) {
+            // First message: Intelligent Opening with calculated guess from onboarding
+            depthInstruction = `This is the user's FIRST message in this conversation.
+You MUST open with a calculated guess based on their onboarding profile. Example: "I notice your onboarding indicated struggles with [specific pattern]. Is this what's weighing on you right now?"
+Do NOT give advice yet. Your only job is to prove you already understand them — make them feel exposed in a way that earns trust.
+Keep it to 2-3 sentences max. Be specific. Reference their actual profile data.`;
+        } else if (depth < 3) {
+            // Early conversation: Socratic Listener mode
+            depthInstruction = `Conversation depth: ${depth} messages. You are in LISTENER MODE.
+- Keep responses under 2 sentences. No exceptions.
+- Use Socratic questioning ONLY. Force them to confront their own logic.
+- Do NOT give advice. Do NOT provide solutions. Do NOT coach.
+- Ask one sharp question that exposes a contradiction in what they just said.
+- Your job is to make them think, not to make them feel better.`;
         } else {
-            modeConstraint = `CRITICAL BEHAVIOR: You are an Expert Interrogator and Identity Architect. 
-- Do NOT act like a generic AI or a soft therapist. Do not use words like "palpable" or "I hear you".
-- Your goal is to dissect the user's psychological barriers.
-- Output format: Highly structured, readable markdown. Use bolding for core truths. Use bullet points for behavioral patterns.
-- Structure:
-  1. The Mirror (Reflect their harsh truth back to them without sugarcoating).
-  2. The Autopsy (Break down exactly why their current identity is failing, using concepts like 'negotiation with self' or 'addiction to relief').
-  3. The Protocol (Provide a strict, identity-building framework to execute).`;
+            // Deep conversation: Coach Mode activated
+            depthInstruction = `Conversation depth: ${depth} messages. COACH MODE ACTIVATED.
+- You now have enough context. Transition into direct, actionable guidance.
+- Provide specific advice, accountability metrics, and identity-building frameworks.
+- Reference patterns you've observed across the conversation so far.
+- Be direct and prescriptive. Tell them exactly what to do and why their current approach is failing.`;
         }
 
-        // Heavily prioritize onboarding profile so the AI references the user's specific past answers
-        const systemInstruction = onboardingPrompt
-            ? `YOU MUST USE THE FOLLOWING USER PROFILE AS YOUR PRIMARY CONTEXT. Reference their specific answers, insecurities, and patterns directly in your response.\n\n--- USER PROFILE ---\n${onboardingPrompt}\n--- END PROFILE ---\n\n${modeConstraint}`
-            : modeConstraint;
+        // Mode-specific persona
+        let modePersona = '';
+        if (mode === 'brotip') {
+            modePersona = `You are an Identity Engineer. Your goal is aggressive mobilization.
+- Do NOT comfort the user. Do NOT validate their excuses.
+- Tone: Cold, analytical, authoritative.
+- Never say "As an AI" or use structural headings like "The Mirror" or "The Autopsy".
+- Write naturally, conversationally — like a brutally honest friend who happens to be a psychologist.`;
+        } else {
+            modePersona = `You are an Identity Architect and psychological strategist.
+- Do NOT act like a generic AI or a soft therapist. Do not use words like "palpable" or "I hear you".
+- Your goal is to dissect the user's psychological barriers with surgical precision.
+- Never say "As an AI" or use structural headings like "The Mirror" or "The Autopsy".
+- Write naturally, conversationally — like a ruthlessly perceptive mentor. Use **bold** for key truths.`;
+        }
+
+        // Compose final system instruction with onboarding as primary context
+        let systemInstruction = '';
+        if (onboardingPrompt) {
+            systemInstruction = `YOU MUST USE THE FOLLOWING USER PROFILE AS YOUR PRIMARY CONTEXT. Reference their specific answers, insecurities, and patterns directly.\n\n--- USER PROFILE ---\n${onboardingPrompt}\n--- END PROFILE ---\n\n${modePersona}\n\n${depthInstruction}`;
+        } else {
+            systemInstruction = `${modePersona}\n\n${depthInstruction}`;
+        }
+
+        // Build structured contents array with full conversation history
+        const contents = conversationHistory.map((msg: { role: string; content: string }) => ({
+            role: msg.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: msg.content }]
+        }));
 
         // Stream Gemini response via generateContentStream
         const streamResponse = await ai.models.generateContentStream({
             model: 'gemini-2.5-flash',
-            contents: message,
+            contents,
             config: {
                 systemInstruction,
                 safetySettings: [

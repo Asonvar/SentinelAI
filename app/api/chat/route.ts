@@ -50,16 +50,21 @@ export async function POST(req: Request) {
             currentChatId = chatData.id;
         }
 
-        // Save User Message
-        const { error: msgError } = await supabase
-            .from('messages')
-            .insert([{
-                chat_id: currentChatId,
-                role: 'user',
-                content: message
-            }]);
+        // Identify system initialization
+        const isSystemInit = message === '[SYSTEM_INIT_COLD_READ]';
 
-        if (msgError) throw new Error('Failed to save message: ' + msgError.message);
+        // Only save the user message if it's NOT a system init trigger
+        if (!isSystemInit) {
+            const { error: msgError } = await supabase
+                .from('messages')
+                .insert([{
+                    chat_id: currentChatId,
+                    role: 'user',
+                    content: message
+                }]);
+
+            if (msgError) throw new Error('Failed to save message: ' + msgError.message);
+        }
 
         // Fetch full conversation history for context injection
         const { data: historyData, error: historyError } = await supabase
@@ -74,8 +79,7 @@ export async function POST(req: Request) {
         }
 
         const conversationHistory = historyData || [];
-        // Depth = number of messages BEFORE this one (excluding the just-saved user message)
-        const depth = Math.max(0, conversationHistory.length - 1);
+        const conversationDepth = conversationHistory.length;
 
         // Fetch User Profile for System Prompt
         const { data: profileData, error: profileError } = await supabase
@@ -91,30 +95,29 @@ export async function POST(req: Request) {
 
         const onboardingPrompt = profileData.generated_system_prompt || "";
 
-        // --- Conversation Depth System ---
+        // --- Conversation Memory and Dynamic Pacing ---
         let depthInstruction = '';
 
-        if (depth === 0) {
-            // First message: Intelligent Opening with calculated guess from onboarding
-            depthInstruction = `This is the user's FIRST message in this conversation.
-You MUST open with a calculated guess based on their onboarding profile. Example: "I notice your onboarding indicated struggles with [specific pattern]. Is this what's weighing on you right now?"
-Do NOT give advice yet. Your only job is to prove you already understand them — make them feel exposed in a way that earns trust.
-Keep it to 2-3 sentences max. Be specific. Reference their actual profile data.`;
-        } else if (depth < 3) {
-            // Early conversation: Socratic Listener mode
-            depthInstruction = `Conversation depth: ${depth} messages. You are in LISTENER MODE.
-- Keep responses under 2 sentences. No exceptions.
-- Use Socratic questioning ONLY. Force them to confront their own logic.
-- Do NOT give advice. Do NOT provide solutions. Do NOT coach.
-- Ask one sharp question that exposes a contradiction in what they just said.
-- Your job is to make them think, not to make them feel better.`;
+        if (conversationDepth === 0) {
+            // Depth 0: The Cold Read
+            depthInstruction = `CRITICAL STATE: This is your FIRST message. The Cold Read.
+- Act as a hyper-perceptive profiler. 
+- Use the user's provided profile data to make a highly specific, slightly unsettling "calculated guess" about their deepest insecurity or behavioral pattern.
+- Do NOT offer advice. Do NOT be polite. Make them feel exposed.
+- End by asking them a single sharp question to confirm if your read is accurate.`;
+        } else if (conversationDepth > 0 && conversationDepth < 6) {
+            // Early Conversation: The Probing Listener
+            depthInstruction = `CRITICAL STATE: Probing Listener Mode (Depth: ${conversationDepth}).
+- Be extremely brief (1-2 sentences). 
+- Validate their reality coldly.
+- End with a Socratic question to force deeper introspection.
+- ABSOLUTELY NO ADVICE ALLOWED. Break them down mentally first.`;
         } else {
-            // Deep conversation: Coach Mode activated
-            depthInstruction = `Conversation depth: ${depth} messages. COACH MODE ACTIVATED.
-- You now have enough context. Transition into direct, actionable guidance.
-- Provide specific advice, accountability metrics, and identity-building frameworks.
-- Reference patterns you've observed across the conversation so far.
-- Be direct and prescriptive. Tell them exactly what to do and why their current approach is failing.`;
+            // Deep Conversation: The Executioner
+            depthInstruction = `CRITICAL STATE: Executioner Mode Activated (Depth: ${conversationDepth}).
+- Pivot entirely. Stop probing. Stop listening to excuses.
+- Point out the specific contradictions in what they have said so far.
+- Demand a specific, immediate real-world action to break their paralysis. Give them a strict protocol.`;
         }
 
         // Mode-specific persona
@@ -146,6 +149,11 @@ Keep it to 2-3 sentences max. Be specific. Reference their actual profile data.`
             role: msg.role === 'assistant' ? 'model' : 'user',
             parts: [{ text: msg.content }]
         }));
+
+        // If it's a system init, it wasn't saved, so we must manually append it to the contents for the model to see
+        if (isSystemInit) {
+            contents.push({ role: 'user', parts: [{ text: message }] });
+        }
 
         // Stream Gemini response via generateContentStream
         const streamResponse = await ai.models.generateContentStream({

@@ -178,9 +178,7 @@ export default function Dashboard() {
             const { data: { session } } = await supabase.auth.getSession();
 
             // Send a trigger message that activates the depth=0 "calculated guess" logic
-            const triggerMessage = selectedMode === 'vent'
-                ? "I need to talk."
-                : "Give me a tip.";
+            const triggerMessage = "[SYSTEM_INIT_COLD_READ]";
 
             const response = await fetch('/api/chat', {
                 method: 'POST',

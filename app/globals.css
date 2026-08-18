@@ -5,6 +5,8 @@
   --background: #000000;
   --foreground: #EAEAEA;
   --accent: #C25E00;
+  --font-inter: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-cinzel: 'Cinzel', 'Times New Roman', serif;
 }
 
 @theme inline {

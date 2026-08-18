@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { MessageSquare, Zap, Target, Bookmark, Plus, User } from "lucide-react";
+import { MessageSquare, Zap, Plus, User } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -416,81 +416,6 @@ export default function Dashboard() {
                             </div>
                         </>
                     )}
-                </div>
-
-                {/* Right Sidebar (Goals) */}
-                <div className="w-80 h-full flex flex-col border-l border-[#333] p-4 gap-6 overflow-y-auto shrink-0 relative">
-                    <div className="opacity-50 pointer-events-none filter blur-[1px] flex flex-col gap-6">
-                        {/* Daily Goals */}
-                        <div>
-                            <h3 className="text-xs text-[#A3A3A3] uppercase tracking-wider mb-3 flex items-center gap-2">
-                                <Target className="w-3 h-3" />
-                                Daily Goals
-                            </h3>
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-3 h-10 px-3 bg-[#111] rounded">
-                                    <div className="w-4 h-4 border border-[#333] rounded-sm shrink-0"></div>
-                                    <span className="text-sm text-[#EAEAEA]/80">Hit the gym</span>
-                                </div>
-                                <div className="flex items-center gap-3 h-10 px-3 bg-[#111] rounded">
-                                    <div className="w-4 h-4 border border-[#333] rounded-sm shrink-0"></div>
-                                    <span className="text-sm text-[#EAEAEA]/80">Read 10 pages</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Weekly Goals */}
-                        <div>
-                            <h3 className="text-xs text-[#A3A3A3] uppercase tracking-wider mb-3 flex items-center gap-2">
-                                <Target className="w-3 h-3" />
-                                Weekly Goals
-                            </h3>
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-3 h-10 px-3 bg-[#111] rounded">
-                                    <div className="w-4 h-4 border border-[#333] rounded-sm shrink-0"></div>
-                                    <span className="text-sm text-[#EAEAEA]/80">Run 10km total</span>
-                                </div>
-                                <div className="flex items-center gap-3 h-10 px-3 bg-[#111] rounded">
-                                    <div className="w-4 h-4 border border-[#333] rounded-sm shrink-0"></div>
-                                    <span className="text-sm text-[#EAEAEA]/80">Complete project</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Long-Term Goals */}
-                        <div>
-                            <h3 className="text-xs text-[#A3A3A3] uppercase tracking-wider mb-3 flex items-center gap-2">
-                                <Target className="w-3 h-3" />
-                                Long-Term Vision
-                            </h3>
-                            <ul className="list-disc list-inside space-y-2 text-sm text-[#EAEAEA]/60 px-2">
-                                <li>Bench press 100kg</li>
-                                <li>Launch the startup</li>
-                                <li>Master discipline</li>
-                            </ul>
-                        </div>
-
-                        {/* Saved Tips */}
-                        <div>
-                            <h3 className="text-xs text-[#A3A3A3] uppercase tracking-wider mb-3 flex items-center gap-2">
-                                <Bookmark className="w-3 h-3" />
-                                Saved Tips
-                            </h3>
-                            <ul className="space-y-3">
-                                <li className="text-sm text-[#EAEAEA]/80 border-b border-[#333] pb-2 cursor-pointer hover:text-[#C25E00] transition-colors">
-                                    "Discipline eats motivation for breakfast."
-                                </li>
-                                <li className="text-sm text-[#EAEAEA]/80 border-b border-[#333] pb-2 cursor-pointer hover:text-[#C25E00] transition-colors">
-                                    "Focus on the process, not the outcome."
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <span className="bg-white/5 p-2 rounded text-xs text-center text-white/50">
-                            COMING SOON...
-                        </span>
-                    </div>
                 </div>
             </div>
         </div>

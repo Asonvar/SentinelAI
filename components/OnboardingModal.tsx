@@ -50,12 +50,25 @@ export default function OnboardingModal({ isOpen, onClose }: OnboardingModalProp
                 setIsTransitioning(false);
 
                 try {
+                    // const response = await fetch('/api/analyze-profile', {
+                    //     method: 'POST',
+                    //     headers: {
+                    //         'Content-Type': 'application/json',
+                    //     },
+                    //     body: JSON.stringify({ answers: newAnswers }),
+                    // });
+
+                    const qaPairs = QUESTION_SET_1.map((q, i) => ({
+                        question: q.text,
+                        answer: newAnswers[i],
+                    }));
+
                     const response = await fetch('/api/analyze-profile', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({ answers: newAnswers }),
+                        body: JSON.stringify({ answers: qaPairs }),
                     });
 
                     const data = await response.json();

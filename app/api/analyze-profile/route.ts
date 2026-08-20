@@ -25,11 +25,16 @@ export async function POST(req: Request) {
             );
         }
 
-        const prompt = `You are an expert psychologist. Analyze these user answers. Return PURE JSON. Do not use Markdown. Do not use code blocks. Return a JSON object with these keys: confidence_score (0-100), emotional_stability (string), dominant_insecurity (string), and generated_system_prompt (a string describing how to talk to them).
-    
-    User Answers:
-    ${JSON.stringify(answers)}
-    `;
+        const prompt = `You are an expert psychologist analyzing a user's honest answers to a personal questionnaire. Base your analysis STRICTLY on the specific content of the answers below. Do not invent a theme, narrative, or archetype that isn't clearly supported by what they actually wrote — if their answers point to fatigue, self-doubt, or feeling behind, reflect that directly rather than reframing it as something more abstract.
+        Return PURE JSON. Do not use Markdown. Do not use code blocks. Return a JSON object with these keys: confidence_score (0-100), emotional_stability (string), dominant_insecurity (string, grounded in what they actually said), and generated_system_prompt (a string describing how to talk to this specific person, referencing the real issues they raised).
+        User's Question & Answer pairs:
+        ${JSON.stringify(answers, null, 2)}`;
+
+        //     const prompt = `You are an expert psychologist. Analyze these user answers. Return PURE JSON. Do not use Markdown. Do not use code blocks. Return a JSON object with these keys: confidence_score (0-100), emotional_stability (string), dominant_insecurity (string), and generated_system_prompt (a string describing how to talk to them).
+
+        // User Answers:
+        // ${JSON.stringify(answers)}
+        // `;
 
         // Model selection + safety configurations via the new SDK
         const response = await ai.models.generateContent({

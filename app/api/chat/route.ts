@@ -81,10 +81,10 @@ export async function POST(req: Request) {
         const conversationHistory = historyData || [];
         const conversationDepth = conversationHistory.length;
 
-        // Fetch User Profile for System Prompt
+        // Fetch User Profile for System Prompt — pull the full picture, not just one field
         const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .select('generated_system_prompt')
+            .select('generated_system_prompt, dominant_insecurity, emotional_stability')
             .eq('id', user.id)
             .single();
 
@@ -94,13 +94,30 @@ export async function POST(req: Request) {
         }
 
         const onboardingPrompt = profileData.generated_system_prompt || "";
+        const dominantInsecurity = profileData.dominant_insecurity || "";
+        const emotionalStability = profileData.emotional_stability || "";
+
+        // // Fetch User Profile for System Prompt
+        // const { data: profileData, error: profileError } = await supabase
+        //     .from('profiles')
+        //     .select('generated_system_prompt')
+        //     .eq('id', user.id)
+        //     .single();
+
+        // if (profileError) {
+        //     console.error('Profile Fetch Error:', profileError);
+        //     throw new Error('Failed to fetch profile: ' + profileError.message);
+        // }
+
+        // const onboardingPrompt = profileData.generated_system_prompt || "";
 
                 // --- Conversation Memory and Dynamic Pacing (structural only — tone lives in modePersona) ---
         let depthInstruction = '';
 
         if (conversationDepth === 0) {
             depthInstruction = `CRITICAL STATE: This is your very first message to this person.
-- Open by naming ONE specific, concrete thing from their profile — something they actually said, not a generic guess or invented narrative.
+- Your FIRST sentence MUST directly reference or paraphrase something specific from the profile above — their insecurity, a pattern they described, an actual thing they said. Not a vibe, an actual specific.
+- FORBIDDEN as an opener: "It's good to connect with you", "I'm here to listen", "What's on your mind", "I'd love to hear" — these are generic filler and are NOT acceptable, even as a warm-up line.
 - Keep it to 2-4 sentences.
 - End with a direct question inviting them to explain more.`;
         } else if (conversationDepth > 0 && conversationDepth < 6) {
@@ -178,7 +195,7 @@ export async function POST(req: Request) {
         // Compose final system instruction with onboarding as primary context
         let systemInstruction = '';
         if (onboardingPrompt) {
-            systemInstruction = `YOU MUST USE THE FOLLOWING USER PROFILE AS YOUR PRIMARY CONTEXT. Reference their specific answers, insecurities, and patterns directly.\n\n--- USER PROFILE ---\n${onboardingPrompt}\n--- END PROFILE ---\n\n${modePersona}\n\n${depthInstruction}`;
+            systemInstruction = `YOU MUST USE THE FOLLOWING USER PROFILE AS YOUR PRIMARY CONTEXT. Every message, especially your first, MUST reference their specific answers, insecurities, and patterns directly — never a generic greeting.\n\n--- USER PROFILE ---\nHow to talk to them: ${onboardingPrompt}\nTheir core insecurity: ${dominantInsecurity}\nEmotional state: ${emotionalStability}\n--- END PROFILE ---\n\n${modePersona}\n\n${depthInstruction}`;
         } else {
             systemInstruction = `${modePersona}\n\n${depthInstruction}`;
         }
@@ -196,7 +213,7 @@ export async function POST(req: Request) {
 
         // Stream Gemini response via generateContentStream
         const streamResponse = await ai.models.generateContentStream({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-2.5-pro',
             contents,
             config: {
                 systemInstruction,
